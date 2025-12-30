@@ -2,189 +2,78 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big Smoke | Admin</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+<title>Admin | Big Smoke</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <style>
 body {
-  margin: 0;
-  background: radial-gradient(circle at top, #111, #000);
-  font-family: 'Montserrat', sans-serif;
-  color: #fff;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background:#000;
+  color:#fff;
+  font-family:Montserrat;
+  padding:20px;
 }
-
-.panel {
-  width: 100%;
-  max-width: 420px;
-  background: #0c0c0c;
-  border-radius: 18px;
-  padding: 20px;
-  box-shadow: 0 0 40px rgba(46,204,113,0.25);
-  border: 1px solid rgba(46,204,113,0.4);
-}
-
-h1 {
-  font-family: 'Bebas Neue';
-  text-align: center;
-  margin-bottom: 15px;
-  letter-spacing: 1px;
-}
-
 input, button {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 10px;
-  border: none;
-  font-size: 14px;
+  padding:10px;
+  margin:5px 0;
+  width:100%;
 }
-
-input {
-  background: #111;
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.1);
-}
-
 button {
-  background: #2ecc71;
-  color: #000;
-  font-family: 'Bebas Neue';
-  font-size: 18px;
-  cursor: pointer;
-}
-
-button.alt {
-  background: transparent;
-  border: 1px solid #2ecc71;
-  color: #2ecc71;
-}
-
-.info {
-  background: rgba(255,255,255,0.05);
-  padding: 10px;
-  border-radius: 10px;
-  font-size: 14px;
-  margin-bottom: 10px;
+  background:#2ecc71;
+  border:none;
+  font-weight:700;
 }
 </style>
 </head>
-
 <body>
 
-<div class="panel">
-  <h1>ADMIN BIG SMOKE</h1>
+<h2>🛠️ Admin Big Smoke</h2>
 
-  <input id="playerId" placeholder="ID do Player">
+<input id="playerId" placeholder="Player ID">
+<input id="valor" type="number" placeholder="Valor da compra">
+<input id="descricao" placeholder="Descrição">
 
-  <button onclick="buscarPlayer()">Buscar Player</button>
-
-  <div id="dados" class="info" style="display:none"></div>
-
-  <input id="valorCompra" placeholder="Valor da compra (ex: 120)">
-  <button onclick="registrarCompra()">Registrar Compra</button>
-
-  <button class="alt" onclick="alterarRespeito(1)">+1 Respeito</button>
-  <button class="alt" onclick="alterarRespeito(-1)">-1 Respeito</button>
-</div>
+<button onclick="registrar()">Registrar Compra</button>
 
 <script>
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyDSFd-aLgogUqsRAxne5avvAIiYF6cUFKE",
   authDomain: "bigsmoke-nfc.firebaseapp.com",
   projectId: "bigsmoke-nfc"
-};
+});
 
-firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let playerRef = null;
-let playerData = null;
+function registrar() {
+  const id = playerId.value;
+  const valor = Number(valor.value);
+  const descricao = descricao.value;
 
-function calcularRank(respeito) {
-  if (respeito >= 8000) return 5;
-  if (respeito >= 6000) return 4;
-  if (respeito >= 4000) return 3;
-  if (respeito >= 2000) return 2;
-  return 1;
-}
+  const respeito = Math.floor(valor);
 
-function hoje() {
-  return new Date().toISOString().split("T")[0];
-}
+  const ref = db.collection("players").doc(id);
 
-function buscarPlayer() {
-  const id = document.getElementById("playerId").value;
-  if (!id) return;
+  ref.get().then(doc => {
+    if (!doc.exists) return alert("Player não encontrado");
 
-  playerRef = db.collection("players").doc(id);
+    const p = doc.data();
 
-  playerRef.get().then(doc => {
-    if (!doc.exists) {
-      alert("Player não encontrado");
-      return;
-    }
+    ref.update({
+      respeito: (p.respeito || 0) + respeito,
+      comprasTotal: (p.comprasTotal || 0) + valor
+    });
 
-    playerData = doc.data();
+    ref.collection("historico").add({
+      tipo: "compra",
+      valor,
+      respeitoGanho: respeito,
+      descricao,
+      data: new Date()
+    });
 
-    document.getElementById("dados").style.display = "block";
-    document.getElementById("dados").innerHTML = `
-      <strong>@${playerData.apelido}</strong><br>
-      Nível: ${playerData.nivel}<br>
-      Respeito: ${playerData.respeito}/5<br>
-      Compras: R$ ${playerData.compras || 0}
-    `;
+    alert("Compra registrada com sucesso");
   });
-}
-
-function registrarCompra() {
-  if (!playerRef) return;
-
-  const valor = Number(document.getElementById("valorCompra").value);
-  if (!valor) return;
-
-  const novoXP = (playerData.respeito || 0) + valor;
-  const novoRank = calcularRank(novoXP);
-
-  playerRef.update({
-    respeito: novoXP,
-    rank: novoRank,
-    compras: (playerData.compras || 0) + valor
-  });
-
-  playerRef.collection("historico").add({
-    acao: `Compra registrada +${valor} XP`,
-    data: new Date().toISOString().split("T")[0]
-  });
-
-  alert("XP adicionado com sucesso");
-  buscarPlayer();
-}
-
-
-function alterarRespeito(delta) {
-  if (!playerRef) return;
-
-  let novo = playerData.respeito + delta;
-  novo = Math.max(0, Math.min(5, novo));
-
-  playerRef.update({ respeito: novo });
-
-  playerRef.collection("historico").add({
-    acao: `Respeito ajustado (${delta > 0 ? "+" : ""}${delta})`,
-    data: hoje()
-  });
-
-  alert("Respeito atualizado");
-  buscarPlayer();
 }
 </script>
 
