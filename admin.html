@@ -109,6 +109,14 @@ const db = firebase.firestore();
 let playerRef = null;
 let playerData = null;
 
+function calcularRank(respeito) {
+  if (respeito >= 8000) return 5;
+  if (respeito >= 6000) return 4;
+  if (respeito >= 4000) return 3;
+  if (respeito >= 2000) return 2;
+  return 1;
+}
+
 function hoje() {
   return new Date().toISOString().split("T")[0];
 }
