@@ -148,23 +148,45 @@ function estrelas(qt) {
   return "★".repeat(qt) + "☆".repeat(5 - qt);
 }
 
-function showTab(tab) {
+function beneficiosPorRespeito(r) {
+  if (r >= 5) return "Cliente VIP Big Smoke. Descontos exclusivos e prioridade.";
+  if (r >= 4) return "10% OFF em produtos selecionados.";
+  if (r >= 3) return "5% OFF em produtos selecionados.";
+  if (r >= 2) return "Participação em promoções e sorteios.";
+  return "Cadastro ativo no sistema Big Smoke.";
+}
+
+function showTab(tab, player) {
   document.querySelectorAll(".menu button").forEach(b => b.classList.remove("active"));
   event.target.classList.add("active");
 
   const c = document.getElementById("content");
 
   if (tab === "perfil") {
-    c.innerHTML = `<p>Status ativo no sistema Big Smoke.</p><p>Respeito se conquista.</p>`;
+    c.innerHTML = `
+      <p><strong>Nível:</strong> ${player.nivel}</p>
+      <p><strong>Respeito:</strong> ${player.respeito} ⭐</p>
+      <p>${beneficiosPorRespeito(player.respeito)}</p>
+    `;
   }
+
   if (tab === "compras") {
-    c.innerHTML = `<p>Total de compras registradas.</p>`;
+    c.innerHTML = `
+      <p>Total de compras registradas:</p>
+      <h3>${player.compras}</h3>
+    `;
   }
+
   if (tab === "beneficios") {
-    c.innerHTML = `<p>Benefícios liberados conforme o respeito.</p>`;
+    c.innerHTML = `
+      <p>${beneficiosPorRespeito(player.respeito)}</p>
+    `;
   }
+
   if (tab === "historico") {
-    c.innerHTML = `<p>Histórico de visitas e ações.</p>`;
+    c.innerHTML = `
+      <p>Histórico em desenvolvimento.</p>
+    `;
   }
 }
 
@@ -172,16 +194,24 @@ if (playerId) {
   db.collection("players").doc(playerId).get().then(doc => {
     if (doc.exists) {
       const p = doc.data();
+
       document.getElementById("apelido").innerText = "@" + p.apelido;
       document.getElementById("nivel").innerText = "Nível: " + p.nivel;
       document.getElementById("respeito").innerText = estrelas(p.respeito);
       document.getElementById("membro").innerText = "Membro desde " + p.membroDesde;
+
       setAvatar(playerId);
-      showTab("perfil");
+
+      showTab("perfil", p);
+
+      document.querySelectorAll(".menu button").forEach(btn => {
+        btn.onclick = (e) => showTab(btn.innerText.toLowerCase(), p);
+      });
     }
   });
 }
 </script>
+
 
 </body>
 </html>
