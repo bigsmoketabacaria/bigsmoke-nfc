@@ -23,7 +23,7 @@ body {
 }
 
 .card {
-  max-width: 360px;
+  max-width: 380px;
   width: 100%;
   background: #0c0c0c;
   padding: 20px;
@@ -73,6 +73,55 @@ body {
   text-align: center;
   font-size: 13px;
   opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+/* 🔘 TABS */
+.tabs {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tab {
+  flex: 1;
+  background: #111;
+  border: none;
+  color: #aaa;
+  padding: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 8px;
+  margin: 0 2px;
+}
+
+.tab.active {
+  background: #2ecc71;
+  color: #000;
+  font-weight: 700;
+}
+
+.tab-content {
+  display: none;
+  background: #111;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.badge {
+  display: inline-block;
+  background: #2ecc71;
+  color: #000;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  margin: 4px 4px 0 0;
+  font-weight: 700;
 }
 </style>
 </head>
@@ -89,6 +138,19 @@ body {
   </div>
 
   <div class="info" id="xpInfo">Carregando...</div>
+
+  <!-- 🔘 GUIAS -->
+  <div class="tabs">
+    <button class="tab active" onclick="openTab('perfil')">Perfil</button>
+    <button class="tab" onclick="openTab('compras')">Compras</button>
+    <button class="tab" onclick="openTab('beneficios')">Benefícios</button>
+    <button class="tab" onclick="openTab('historico')">Histórico</button>
+  </div>
+
+  <div class="tab-content active" id="perfil"></div>
+  <div class="tab-content" id="compras"></div>
+  <div class="tab-content" id="beneficios"></div>
+  <div class="tab-content" id="historico"></div>
 </div>
 
 <script>
@@ -103,6 +165,14 @@ const db = firebase.firestore();
 
 const id = new URLSearchParams(window.location.search).get("id");
 
+/* 🔘 CONTROLE DAS ABAS */
+function openTab(tabId) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.querySelector(`[onclick="openTab('${tabId}')"]`).classList.add("active");
+  document.getElementById(tabId).classList.add("active");
+}
+
 /* 🔰 RANK */
 function calcularRank(respeito) {
   if (respeito >= 8000) return 5;
@@ -116,14 +186,6 @@ function estrelas(qt) {
   return "★".repeat(qt) + "☆".repeat(5 - qt);
 }
 
-/* 🏅 CONQUISTAS */
-const conquistasDisponiveis = [
-  { id: "iniciante", nome: "Primeiro Contato", regra: p => p.respeito >= 100 },
-  { id: "cliente_fiel", nome: "Cliente Fiel", regra: p => (p.compras || 0) >= 500 },
-  { id: "elite", nome: "Elite Big Smoke", regra: p => p.rank >= 4 },
-  { id: "vip", nome: "VIP Big Smoke", regra: p => p.rank === 5 }
-];
-
 /* 🧍 AVATAR */
 function setAvatar(id) {
   const avatar = document.getElementById("avatar");
@@ -133,25 +195,7 @@ function setAvatar(id) {
   img.onerror = () => avatar.style.backgroundImage = `url(avatars/default.png)`;
 }
 
-/* 🔔 NOTIFICAÇÃO */
-function notify(msg) {
-  const n = document.createElement("div");
-  n.innerText = msg;
-  n.style.position = "fixed";
-  n.style.bottom = "20px";
-  n.style.left = "50%";
-  n.style.transform = "translateX(-50%)";
-  n.style.background = "#2ecc71";
-  n.style.color = "#000";
-  n.style.padding = "10px 18px";
-  n.style.borderRadius = "10px";
-  n.style.fontWeight = "700";
-  n.style.zIndex = "999";
-  document.body.appendChild(n);
-  setTimeout(() => n.remove(), 3500);
-}
-
-/* 🚀 PLAYER LOAD */
+/* 🚀 LOAD PLAYER */
 if (id) {
   db.collection("players").doc(id).onSnapshot(doc => {
     if (!doc.exists) return;
@@ -159,14 +203,13 @@ if (id) {
     const p = doc.data();
     const respeito = p.respeito || 0;
     const rankAtual = calcularRank(respeito);
-    const rankAnterior = p.ultimoRank || 1;
 
     document.getElementById("apelido").innerText = "@" + p.apelido;
     document.getElementById("stars").innerText = estrelas(rankAtual);
 
-    const inicioRank = (rankAtual - 1) * 2000;
-    const fimRank = rankAtual * 2000;
-    const progresso = ((respeito - inicioRank) / (fimRank - inicioRank)) * 100;
+    const inicio = (rankAtual - 1) * 2000;
+    const fim = rankAtual * 2000;
+    const progresso = ((respeito - inicio) / (fim - inicio)) * 100;
 
     document.getElementById("xpBar").style.width =
       Math.max(0, Math.min(100, progresso)) + "%";
@@ -174,31 +217,35 @@ if (id) {
     document.getElementById("xpInfo").innerText =
       `Respeito: ${respeito} XP • Rank ${rankAtual}`;
 
-    /* ⭐ RANK UP */
-    if (rankAtual > rankAnterior) {
-      notify(`⭐ Novo Rank desbloqueado! (${rankAtual} estrelas)`);
-      db.collection("players").doc(id).update({ ultimoRank: rankAtual });
-    }
+    /* 📋 PERFIL */
+    document.getElementById("perfil").innerHTML = `
+      <p><b>Apelido:</b> @${p.apelido}</p>
+      <p><b>Membro desde:</b> ${p.membroDesde || "—"}</p>
+      <p><b>Respeito:</b> ${respeito} XP</p>
+      <p><b>Rank:</b> ${rankAtual} ⭐</p>
+    `;
 
-    /* 🏅 CONQUISTAS */
-    const conquistasAtuais = p.conquistas || [];
-    conquistasDisponiveis.forEach(c => {
-      if (!conquistasAtuais.includes(c.id) && c.regra({ ...p, rank: rankAtual })) {
-        conquistasAtuais.push(c.id);
-        notify(`🏅 Conquista desbloqueada: ${c.nome}`);
-      }
-    });
+    /* 🛒 COMPRAS */
+    document.getElementById("compras").innerHTML = `
+      <p>Total gasto:</p>
+      <h3>R$ ${(p.compras || 0).toFixed(2)}</h3>
+    `;
 
-    db.collection("players").doc(id).update({
-      rank: rankAtual,
-      conquistas: conquistasAtuais
-    });
+    /* 🏅 BENEFÍCIOS */
+    document.getElementById("beneficios").innerHTML =
+      (p.conquistas && p.conquistas.length)
+        ? p.conquistas.map(c => `<span class="badge">${c}</span>`).join("")
+        : "<p>Nenhum benefício ainda</p>";
+
+    /* 📜 HISTÓRICO */
+    document.getElementById("historico").innerHTML =
+      "<p>Histórico detalhado em breve 🔒</p>";
 
     setAvatar(id);
   });
 }
 </script>
 
-
 </body>
 </html>
+
