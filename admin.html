@@ -143,18 +143,24 @@ function registrarCompra() {
   const valor = Number(document.getElementById("valorCompra").value);
   if (!valor) return;
 
-  const novoTotal = (playerData.compras || 0) + valor;
+  const novoXP = (playerData.respeito || 0) + valor;
+  const novoRank = calcularRank(novoXP);
 
-  playerRef.update({ compras: novoTotal });
-
-  playerRef.collection("historico").add({
-    acao: `Compra registrada — R$${valor}`,
-    data: hoje()
+  playerRef.update({
+    respeito: novoXP,
+    rank: novoRank,
+    compras: (playerData.compras || 0) + valor
   });
 
-  alert("Compra registrada");
+  playerRef.collection("historico").add({
+    acao: `Compra registrada +${valor} XP`,
+    data: new Date().toISOString().split("T")[0]
+  });
+
+  alert("XP adicionado com sucesso");
   buscarPlayer();
 }
+
 
 function alterarRespeito(delta) {
   if (!playerRef) return;
