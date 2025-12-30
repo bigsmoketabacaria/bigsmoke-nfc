@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Leaderboard | Big Smoke</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+  background:#000;
+  color:#fff;
+  font-family:Montserrat;
+  padding:20px;
+}
+h1 {
+  font-family:Bebas Neue;
+  letter-spacing:2px;
+}
+.player {
+  display:flex;
+  justify-content:space-between;
+  padding:12px;
+  border-bottom:1px solid #222;
+}
+.rank {
+  color:#f1c40f;
+  font-weight:700;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏆 TOP RESPEITO — BIG SMOKE</h1>
+<div id="list"></div>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDSFd-aLgogUqsRAxne5avvAIiYF6cUFKE",
+  authDomain: "bigsmoke-nfc.firebaseapp.com",
+  projectId: "bigsmoke-nfc"
+});
+
+const db = firebase.firestore();
+const list = document.getElementById("list");
+
+function estrelas(qt) {
+  return "★".repeat(qt) + "☆".repeat(5 - qt);
+}
+
+db.collection("players")
+  .orderBy("respeito", "desc")
+  .limit(20)
+  .onSnapshot(snapshot => {
+    list.innerHTML = "";
+    let pos = 1;
+
+    snapshot.forEach(doc => {
+      const p = doc.data();
+
+      list.innerHTML += `
+        <div class="player">
+          <div class="rank">#${pos}</div>
+          <div>@${p.apelido}</div>
+          <div>${estrelas(p.rank || 1)}</div>
+          <div>${p.respeito} XP</div>
+        </div>
+      `;
+      pos++;
+    });
+  });
+</script>
+
+</body>
+</html>
