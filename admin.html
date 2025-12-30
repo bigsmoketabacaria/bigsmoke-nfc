@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Smoke | Admin</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #111, #000);
+  font-family: 'Montserrat', sans-serif;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.panel {
+  width: 100%;
+  max-width: 420px;
+  background: #0c0c0c;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 0 40px rgba(46,204,113,0.25);
+  border: 1px solid rgba(46,204,113,0.4);
+}
+
+h1 {
+  font-family: 'Bebas Neue';
+  text-align: center;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+}
+
+input {
+  background: #111;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+button {
+  background: #2ecc71;
+  color: #000;
+  font-family: 'Bebas Neue';
+  font-size: 18px;
+  cursor: pointer;
+}
+
+button.alt {
+  background: transparent;
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+}
+
+.info {
+  background: rgba(255,255,255,0.05);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+  <h1>ADMIN BIG SMOKE</h1>
+
+  <input id="playerId" placeholder="ID do Player">
+
+  <button onclick="buscarPlayer()">Buscar Player</button>
+
+  <div id="dados" class="info" style="display:none"></div>
+
+  <input id="valorCompra" placeholder="Valor da compra (ex: 120)">
+  <button onclick="registrarCompra()">Registrar Compra</button>
+
+  <button class="alt" onclick="alterarRespeito(1)">+1 Respeito</button>
+  <button class="alt" onclick="alterarRespeito(-1)">-1 Respeito</button>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDSFd-aLgogUqsRAxne5avvAIiYF6cUFKE",
+  authDomain: "bigsmoke-nfc.firebaseapp.com",
+  projectId: "bigsmoke-nfc"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let playerRef = null;
+let playerData = null;
+
+function hoje() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function buscarPlayer() {
+  const id = document.getElementById("playerId").value;
+  if (!id) return;
+
+  playerRef = db.collection("players").doc(id);
+
+  playerRef.get().then(doc => {
+    if (!doc.exists) {
+      alert("Player não encontrado");
+      return;
+    }
+
+    playerData = doc.data();
+
+    document.getElementById("dados").style.display = "block";
+    document.getElementById("dados").innerHTML = `
+      <strong>@${playerData.apelido}</strong><br>
+      Nível: ${playerData.nivel}<br>
+      Respeito: ${playerData.respeito}/5<br>
+      Compras: R$ ${playerData.compras || 0}
+    `;
+  });
+}
+
+function registrarCompra() {
+  if (!playerRef) return;
+
+  const valor = Number(document.getElementById("valorCompra").value);
+  if (!valor) return;
+
+  const novoTotal = (playerData.compras || 0) + valor;
+
+  playerRef.update({ compras: novoTotal });
+
+  playerRef.collection("historico").add({
+    acao: `Compra registrada — R$${valor}`,
+    data: hoje()
+  });
+
+  alert("Compra registrada");
+  buscarPlayer();
+}
+
+function alterarRespeito(delta) {
+  if (!playerRef) return;
+
+  let novo = playerData.respeito + delta;
+  novo = Math.max(0, Math.min(5, novo));
+
+  playerRef.update({ respeito: novo });
+
+  playerRef.collection("historico").add({
+    acao: `Respeito ajustado (${delta > 0 ? "+" : ""}${delta})`,
+    data: hoje()
+  });
+
+  alert("Respeito atualizado");
+  buscarPlayer();
+}
+</script>
+
+</body>
+</html>
