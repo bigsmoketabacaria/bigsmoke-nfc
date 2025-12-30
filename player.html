@@ -66,12 +66,13 @@ body {
   height: 14px;
   background: linear-gradient(90deg, #2ecc71, #27ae60);
   width: 0%;
+  transition: width 0.6s ease;
 }
 
 .info {
   text-align: center;
   font-size: 13px;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 </style>
 </head>
@@ -80,17 +81,18 @@ body {
 
 <div class="card">
   <div id="avatar" class="avatar"></div>
-  <div class="nickname" id="apelido"></div>
-  <div class="stars" id="stars"></div>
+  <div class="nickname" id="apelido">---</div>
+  <div class="stars" id="stars">☆☆☆☆☆</div>
 
   <div class="bar">
     <div class="bar-fill" id="xpBar"></div>
   </div>
 
-  <div class="info" id="xpInfo"></div>
+  <div class="info" id="xpInfo">Carregando...</div>
 </div>
 
 <script>
+/* 🔥 FIREBASE CONFIG — CORRIGIDO */
 const firebaseConfig = {
   apiKey: "AIzaSyDSFd-aLgogUqsRAxne5avvAIiYF6cUFKE",
   authDomain: "bigsmoke-nfc.firebaseapp.com",
@@ -100,8 +102,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+/* 🔑 ID DO PLAYER */
 const id = new URLSearchParams(window.location.search).get("id");
 
+/* 🧠 RANK */
 function calcularRank(respeito) {
   if (respeito >= 8000) return 5;
   if (respeito >= 6000) return 4;
@@ -114,28 +118,35 @@ function estrelas(qt) {
   return "★".repeat(qt) + "☆".repeat(5 - qt);
 }
 
+/* 🧍 AVATAR */
 function setAvatar(id) {
+  const avatar = document.getElementById("avatar");
   const img = new Image();
   img.src = `avatars/${id}.png`;
-  img.onload = () => document.getElementById("avatar").style.backgroundImage = `url(${img.src})`;
-  img.onerror = () => document.getElementById("avatar").style.backgroundImage = `url(avatars/default.png)`;
+  img.onload = () => avatar.style.backgroundImage = `url(${img.src})`;
+  img.onerror = () => avatar.style.backgroundImage = `url(avatars/default.png)`;
 }
 
+/* 🚀 CARREGAMENTO DO PLAYER */
 if (id) {
   db.collection("players").doc(id).onSnapshot(doc => {
     if (!doc.exists) return;
 
     const p = doc.data();
-    const rank = calcularRank(p.respeito);
+    const rank = calcularRank(p.respeito || 0);
 
-    document.getElementById("apelido").innerText = "@" + p.apelido;
+    document.getElementById("apelido").innerText = "@" + (p.apelido || "player");
     document.getElementById("stars").innerText = estrelas(rank);
 
-    const xpAtual = p.respeito;
-    const proxRankXP = rank * 2000;
-    const progresso = Math.min(100, (xpAtual / proxRankXP) * 100);
+    const xpAtual = p.respeito || 0;
 
-    document.getElementById("xpBar").style.width = progresso + "%";
+    const inicioRank = (rank - 1) * 2000;
+    const fimRank = rank * 2000;
+    const progresso = ((xpAtual - inicioRank) / (fimRank - inicioRank)) * 100;
+
+    document.getElementById("xpBar").style.width =
+      Math.max(0, Math.min(100, progresso)) + "%";
+
     document.getElementById("xpInfo").innerText =
       `Respeito: ${xpAtual} XP • Rank ${rank}`;
 
