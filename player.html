@@ -207,6 +207,23 @@ if (playerId) {
       document.querySelectorAll(".menu button").forEach(btn => {
         btn.onclick = (e) => showTab(btn.innerText.toLowerCase(), p);
       });
+      const hoje = new Date().toISOString().split("T")[0];
+
+if (p.ultimoCheckin !== hoje) {
+  db.collection("players").doc(playerId).update({
+    respeito: Math.min(p.respeito + 1, 5),
+    ultimoCheckin: hoje
+  });
+
+  db.collection("players")
+    .doc(playerId)
+    .collection("historico")
+    .add({
+      acao: "Check-in NFC",
+      data: hoje
+    });
+}
+
     }
   });
 }
