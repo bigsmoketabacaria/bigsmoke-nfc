@@ -1,3 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Smoke | Player</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #111, #000);
+  font-family: 'Montserrat', sans-serif;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.card {
+  max-width: 360px;
+  width: 100%;
+  background: #0c0c0c;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(46,204,113,0.4);
+  box-shadow: 0 0 30px rgba(46,204,113,0.25);
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  margin: auto;
+  border-radius: 50%;
+  border: 3px solid #2ecc71;
+  background-size: cover;
+  background-position: center;
+}
+
+.nickname {
+  font-family: 'Bebas Neue';
+  text-align: center;
+  font-size: 28px;
+  margin-top: 10px;
+}
+
+.stars {
+  text-align: center;
+  font-size: 22px;
+  color: #2ecc71;
+}
+
+.bar {
+  background: #111;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.bar-fill {
+  height: 14px;
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+  width: 0%;
+  transition: width 0.6s ease;
+}
+
+.info {
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.85;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <div id="avatar" class="avatar"></div>
+  <div class="nickname" id="apelido">---</div>
+  <div class="stars" id="stars">☆☆☆☆☆</div>
+
+  <div class="bar">
+    <div class="bar-fill" id="xpBar"></div>
+  </div>
+
+  <div class="info" id="xpInfo">Carregando...</div>
+</div>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyDSFd-aLgogUqsRAxne5avvAIiYF6cUFKE",
@@ -105,3 +198,7 @@ if (id) {
   });
 }
 </script>
+
+
+</body>
+</html>
