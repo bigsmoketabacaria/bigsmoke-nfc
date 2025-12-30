@@ -1,98 +1,4 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Big Smoke | Player</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
-
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-<style>
-body {
-  margin: 0;
-  background: radial-gradient(circle at top, #111, #000);
-  font-family: 'Montserrat', sans-serif;
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
-
-.card {
-  max-width: 360px;
-  width: 100%;
-  background: #0c0c0c;
-  padding: 20px;
-  border-radius: 18px;
-  border: 1px solid rgba(46,204,113,0.4);
-  box-shadow: 0 0 30px rgba(46,204,113,0.25);
-}
-
-.avatar {
-  width: 120px;
-  height: 120px;
-  margin: auto;
-  border-radius: 50%;
-  border: 3px solid #2ecc71;
-  background-size: cover;
-  background-position: center;
-}
-
-.nickname {
-  font-family: 'Bebas Neue';
-  text-align: center;
-  font-size: 28px;
-  margin-top: 10px;
-}
-
-.stars {
-  text-align: center;
-  font-size: 22px;
-  color: #2ecc71;
-}
-
-.bar {
-  background: #111;
-  border-radius: 10px;
-  overflow: hidden;
-  margin: 10px 0;
-}
-
-.bar-fill {
-  height: 14px;
-  background: linear-gradient(90deg, #2ecc71, #27ae60);
-  width: 0%;
-  transition: width 0.6s ease;
-}
-
-.info {
-  text-align: center;
-  font-size: 13px;
-  opacity: 0.85;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-  <div id="avatar" class="avatar"></div>
-  <div class="nickname" id="apelido">---</div>
-  <div class="stars" id="stars">☆☆☆☆☆</div>
-
-  <div class="bar">
-    <div class="bar-fill" id="xpBar"></div>
-  </div>
-
-  <div class="info" id="xpInfo">Carregando...</div>
-</div>
-
 <script>
-/* 🔥 FIREBASE CONFIG — CORRIGIDO */
 const firebaseConfig = {
   apiKey: "AIzaSyDSFd-aLgogUqsRAxne5avvAIiYF6cUFKE",
   authDomain: "bigsmoke-nfc.firebaseapp.com",
@@ -102,10 +8,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* 🔑 ID DO PLAYER */
 const id = new URLSearchParams(window.location.search).get("id");
 
-/* 🧠 RANK */
+/* 🔰 RANK */
 function calcularRank(respeito) {
   if (respeito >= 8000) return 5;
   if (respeito >= 6000) return 4;
@@ -118,6 +23,14 @@ function estrelas(qt) {
   return "★".repeat(qt) + "☆".repeat(5 - qt);
 }
 
+/* 🏅 CONQUISTAS */
+const conquistasDisponiveis = [
+  { id: "iniciante", nome: "Primeiro Contato", regra: p => p.respeito >= 100 },
+  { id: "cliente_fiel", nome: "Cliente Fiel", regra: p => (p.compras || 0) >= 500 },
+  { id: "elite", nome: "Elite Big Smoke", regra: p => p.rank >= 4 },
+  { id: "vip", nome: "VIP Big Smoke", regra: p => p.rank === 5 }
+];
+
 /* 🧍 AVATAR */
 function setAvatar(id) {
   const avatar = document.getElementById("avatar");
@@ -127,37 +40,68 @@ function setAvatar(id) {
   img.onerror = () => avatar.style.backgroundImage = `url(avatars/default.png)`;
 }
 
-/* 🚀 CARREGAMENTO DO PLAYER */
+/* 🔔 NOTIFICAÇÃO */
+function notify(msg) {
+  const n = document.createElement("div");
+  n.innerText = msg;
+  n.style.position = "fixed";
+  n.style.bottom = "20px";
+  n.style.left = "50%";
+  n.style.transform = "translateX(-50%)";
+  n.style.background = "#2ecc71";
+  n.style.color = "#000";
+  n.style.padding = "10px 18px";
+  n.style.borderRadius = "10px";
+  n.style.fontWeight = "700";
+  n.style.zIndex = "999";
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 3500);
+}
+
+/* 🚀 PLAYER LOAD */
 if (id) {
   db.collection("players").doc(id).onSnapshot(doc => {
     if (!doc.exists) return;
 
     const p = doc.data();
-    const rank = calcularRank(p.respeito || 0);
+    const respeito = p.respeito || 0;
+    const rankAtual = calcularRank(respeito);
+    const rankAnterior = p.ultimoRank || 1;
 
-    document.getElementById("apelido").innerText = "@" + (p.apelido || "player");
-    document.getElementById("stars").innerText = estrelas(rank);
+    document.getElementById("apelido").innerText = "@" + p.apelido;
+    document.getElementById("stars").innerText = estrelas(rankAtual);
 
-    const xpAtual = p.respeito || 0;
-
-    const inicioRank = (rank - 1) * 2000;
-    const fimRank = rank * 2000;
-    const progresso = ((xpAtual - inicioRank) / (fimRank - inicioRank)) * 100;
+    const inicioRank = (rankAtual - 1) * 2000;
+    const fimRank = rankAtual * 2000;
+    const progresso = ((respeito - inicioRank) / (fimRank - inicioRank)) * 100;
 
     document.getElementById("xpBar").style.width =
       Math.max(0, Math.min(100, progresso)) + "%";
 
     document.getElementById("xpInfo").innerText =
-      `Respeito: ${xpAtual} XP • Rank ${rank}`;
+      `Respeito: ${respeito} XP • Rank ${rankAtual}`;
 
-    if (p.rank !== rank) {
-      db.collection("players").doc(id).update({ rank });
+    /* ⭐ RANK UP */
+    if (rankAtual > rankAnterior) {
+      notify(`⭐ Novo Rank desbloqueado! (${rankAtual} estrelas)`);
+      db.collection("players").doc(id).update({ ultimoRank: rankAtual });
     }
+
+    /* 🏅 CONQUISTAS */
+    const conquistasAtuais = p.conquistas || [];
+    conquistasDisponiveis.forEach(c => {
+      if (!conquistasAtuais.includes(c.id) && c.regra({ ...p, rank: rankAtual })) {
+        conquistasAtuais.push(c.id);
+        notify(`🏅 Conquista desbloqueada: ${c.nome}`);
+      }
+    });
+
+    db.collection("players").doc(id).update({
+      rank: rankAtual,
+      conquistas: conquistasAtuais
+    });
 
     setAvatar(id);
   });
 }
 </script>
-
-</body>
-</html>
