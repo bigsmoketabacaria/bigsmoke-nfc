@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <title>Admin | Big Smoke</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
@@ -13,28 +15,78 @@ body {
   color:#fff;
   font-family:Montserrat;
   padding:20px;
+  max-width:420px;
+  margin:auto;
+}
+h1 {
+  font-family:Bebas Neue;
+  letter-spacing:2px;
+}
+section {
+  border:1px solid #222;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:20px;
 }
 input, button {
-  padding:10px;
-  margin:5px 0;
   width:100%;
+  padding:10px;
+  margin:6px 0;
+  border-radius:8px;
+  border:none;
 }
 button {
   background:#2ecc71;
-  border:none;
   font-weight:700;
+  cursor:pointer;
+}
+button.alt {
+  background:#f1c40f;
+  color:#000;
+}
+button.danger {
+  background:#e74c3c;
+}
+.log {
+  font-size:13px;
+  opacity:.85;
 }
 </style>
 </head>
+
 <body>
 
-<h2>🛠️ Admin Big Smoke</h2>
+<h1>🛠️ ADMIN BIG SMOKE</h1>
 
-<input id="playerId" placeholder="Player ID">
-<input id="valor" type="number" placeholder="Valor da compra">
-<input id="descricao" placeholder="Descrição">
+<section>
+  <h3>🎯 Identificação do Player</h3>
+  <input id="playerId" placeholder="Player ID (obrigatório)">
+</section>
 
-<button onclick="registrar()">Registrar Compra</button>
+<section>
+  <h3>💰 Registrar Compra</h3>
+  <input id="valorCompra" type="number" placeholder="Valor da compra (R$)">
+  <input id="descricaoCompra" placeholder="Descrição (opcional)">
+  <button onclick="registrarCompra()">Registrar Compra</button>
+</section>
+
+<section>
+  <h3>➕ Ajustes Manuais</h3>
+  <input id="xpManual" type="number" placeholder="Adicionar respeito manual">
+  <button class="alt" onclick="addRespeito()">Adicionar Respeito</button>
+
+  <button class="danger" onclick="resetRespeito()">Resetar Respeito</button>
+</section>
+
+<section>
+  <h3>📅 Check-in Manual</h3>
+  <button onclick="checkin()">Registrar Check-in</button>
+</section>
+
+<section>
+  <h3>📜 Log</h3>
+  <div class="log" id="log">Aguardando ações…</div>
+</section>
 
 <script>
 firebase.initializeApp({
@@ -44,36 +96,97 @@ firebase.initializeApp({
 });
 
 const db = firebase.firestore();
+const log = msg => document.getElementById("log").innerText = msg;
 
-function registrar() {
-  const id = playerId.value;
-  const valor = Number(valor.value);
-  const descricao = descricao.value;
+function getPlayerRef() {
+  const id = document.getElementById("playerId").value.trim();
+  if (!id) throw "Informe o Player ID";
+  return db.collection("players").doc(id);
+}
 
-  const respeito = Math.floor(valor);
+/* 💰 COMPRA */
+async function registrarCompra() {
+  try {
+    const ref = getPlayerRef();
+    const valor = Number(valorCompra.value);
+    if (!valor || valor <= 0) throw "Valor inválido";
 
-  const ref = db.collection("players").doc(id);
+    const desc = descricaoCompra.value || "Compra na Big Smoke";
+    const snap = await ref.get();
+    if (!snap.exists) throw "Player não encontrado";
 
-  ref.get().then(doc => {
-    if (!doc.exists) return alert("Player não encontrado");
+    const p = snap.data();
+    const respeito = Math.floor(valor);
 
-    const p = doc.data();
-
-    ref.update({
+    await ref.update({
       respeito: (p.respeito || 0) + respeito,
       comprasTotal: (p.comprasTotal || 0) + valor
     });
 
-    ref.collection("historico").add({
+    await ref.collection("historico").add({
       tipo: "compra",
       valor,
       respeitoGanho: respeito,
-      descricao,
+      descricao: desc,
       data: new Date()
     });
 
-    alert("Compra registrada com sucesso");
-  });
+    log("✔ Compra registrada com sucesso");
+  } catch (e) {
+    log("❌ " + e);
+  }
+}
+
+/* ➕ RESPEITO MANUAL */
+async function addRespeito() {
+  try {
+    const ref = getPlayerRef();
+    const xp = Number(xpManual.value);
+    if (!xp) throw "Valor inválido";
+
+    const snap = await ref.get();
+    const p = snap.data();
+
+    await ref.update({ respeito: (p.respeito || 0) + xp });
+
+    await ref.collection("historico").add({
+      tipo: "ajuste",
+      respeitoGanho: xp,
+      data: new Date()
+    });
+
+    log("✔ Respeito adicionado");
+  } catch (e) {
+    log("❌ " + e);
+  }
+}
+
+/* 🔁 RESET */
+async function resetRespeito() {
+  try {
+    const ref = getPlayerRef();
+    await ref.update({ respeito: 0, rank: 1 });
+    log("⚠ Respeito resetado");
+  } catch (e) {
+    log("❌ " + e);
+  }
+}
+
+/* 📅 CHECK-IN */
+async function checkin() {
+  try {
+    const ref = getPlayerRef();
+    const hoje = new Date().toISOString().split("T")[0];
+
+    await ref.collection("historico").add({
+      tipo: "checkin",
+      data: hoje
+    });
+
+    log("✔ Check-in registrado");
+  } catch (e) {
+    log("❌ " + e);
+  }
 }
 </script>
 
