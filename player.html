@@ -24,19 +24,18 @@ body {
 
 .card {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   background: linear-gradient(180deg, #111, #0b0b0b);
   border-radius: 18px;
-  box-shadow: 0 0 25px rgba(46,204,113,.25);
+  box-shadow: 0 0 30px rgba(46,204,113,0.25);
   padding: 20px;
-  text-align: center;
-  border: 1px solid rgba(46,204,113,.4);
+  border: 1px solid rgba(46,204,113,0.4);
 }
 
 .avatar {
   width: 120px;
   height: 120px;
-  margin: 0 auto 15px;
+  margin: 0 auto 12px;
   border-radius: 50%;
   border: 3px solid #2ecc71;
   background-size: cover;
@@ -44,31 +43,39 @@ body {
 }
 
 .nickname {
-  font-family: 'Bebas Neue', sans-serif;
+  text-align: center;
+  font-family: 'Bebas Neue';
   font-size: 28px;
 }
 
 .level {
+  text-align: center;
   color: #2ecc71;
   font-weight: 700;
 }
 
 .stars {
-  margin: 10px 0;
-  font-size: 20px;
-  color: #2ecc71;
+  text-align: center;
+  font-size: 22px;
+  margin: 8px 0;
+  transition: transform 0.3s;
+}
+
+.stars.up {
+  transform: scale(1.2);
 }
 
 .info {
+  text-align: center;
   font-size: 13px;
-  opacity: .8;
+  opacity: 0.8;
 }
 
 .menu {
   display: grid;
   grid-template-columns: repeat(2,1fr);
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .menu button {
@@ -78,6 +85,7 @@ body {
   padding: 10px;
   border-radius: 10px;
   font-family: 'Bebas Neue';
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -88,11 +96,30 @@ body {
 
 .content {
   margin-top: 15px;
-  font-size: 14px;
-  text-align: left;
-  background: rgba(255,255,255,.03);
+  background: rgba(255,255,255,0.04);
   padding: 12px;
   border-radius: 10px;
+  font-size: 14px;
+}
+
+.skill {
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.locked {
+  opacity: 0.3;
+}
+
+.unlocked {
+  background: rgba(46,204,113,0.15);
+}
+
+.log {
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 </style>
 </head>
@@ -101,19 +128,19 @@ body {
 
 <div class="card">
   <div id="avatar" class="avatar"></div>
-  <div id="apelido" class="nickname">---</div>
-  <div id="nivel" class="level">---</div>
-  <div id="respeito" class="stars"></div>
-  <div id="membro" class="info"></div>
+  <div class="nickname" id="apelido">---</div>
+  <div class="level" id="nivel">---</div>
+  <div class="stars" id="respeito">☆☆☆☆☆</div>
+  <div class="info" id="membro"></div>
 
   <div class="menu">
-    <button data-tab="perfil" class="active">Perfil</button>
+    <button class="active" data-tab="perfil">Perfil</button>
     <button data-tab="compras">Compras</button>
     <button data-tab="beneficios">Benefícios</button>
     <button data-tab="historico">Histórico</button>
   </div>
 
-  <div id="content" class="content"></div>
+  <div class="content" id="content"></div>
 </div>
 
 <script>
@@ -129,45 +156,76 @@ const db = firebase.firestore();
 const params = new URLSearchParams(window.location.search);
 const playerId = params.get("id");
 
-const avatarDiv = document.getElementById("avatar");
+const avatar = document.getElementById("avatar");
+const content = document.getElementById("content");
+const starsEl = document.getElementById("respeito");
+
+function estrelas(n) {
+  return "★".repeat(n) + "☆".repeat(5-n);
+}
 
 function setAvatar(id) {
-  avatarDiv.style.backgroundImage = `url(avatars/${id}.png)`;
-  avatarDiv.onerror = () => avatarDiv.style.backgroundImage = `url(avatars/default.png)`;
+  const img = new Image();
+  img.src = `avatars/${id}.png`;
+  img.onload = () => avatar.style.backgroundImage = `url(${img.src})`;
+  img.onerror = () => avatar.style.backgroundImage = `url(avatars/default.png)`;
 }
 
-function estrelas(qt) {
-  return "★".repeat(qt) + "☆".repeat(5 - qt);
+function beneficios(respeito) {
+  const lista = [
+    {r:1, t:"Cadastro no sistema"},
+    {r:2, t:"Participa de promoções"},
+    {r:3, t:"5% OFF em produtos"},
+    {r:4, t:"10% OFF em produtos"},
+    {r:5, t:"VIP Big Smoke"}
+  ];
+
+  return lista.map(b =>
+    `<div class="skill ${respeito>=b.r?'unlocked':'locked'}">
+      ${respeito>=b.r?'🔓':'🔒'} ${b.t}
+    </div>`
+  ).join("");
 }
 
-function beneficios(r) {
-  if (r >= 5) return "VIP Big Smoke. Benefícios máximos.";
-  if (r >= 4) return "10% OFF em produtos selecionados.";
-  if (r >= 3) return "5% OFF em produtos selecionados.";
-  if (r >= 2) return "Participa de promoções.";
-  return "Cadastro ativo.";
-}
-
-function render(tab, p) {
-  const c = document.getElementById("content");
+function showTab(tab, p) {
+  document.querySelectorAll(".menu button").forEach(b => {
+    b.classList.toggle("active", b.dataset.tab === tab);
+  });
 
   if (tab === "perfil") {
-    c.innerHTML = `
+    content.innerHTML = `
       <p><strong>Nível:</strong> ${p.nivel}</p>
-      <p><strong>Respeito:</strong> ${p.respeito} ⭐</p>
-      <p>${beneficios(p.respeito)}</p>`;
+      <p><strong>Respeito:</strong> ${p.respeito}/5</p>
+    `;
   }
 
   if (tab === "compras") {
-    c.innerHTML = `<p>Total de compras:</p><h3>${p.compras}</h3>`;
+    content.innerHTML = `
+      <h3>Total de compras</h3>
+      <p>${p.compras || 0}</p>
+    `;
   }
 
   if (tab === "beneficios") {
-    c.innerHTML = `<p>${beneficios(p.respeito)}</p>`;
+    content.innerHTML = beneficios(p.respeito);
   }
 
   if (tab === "historico") {
-    c.innerHTML = `<p>Histórico em breve.</p>`;
+    content.innerHTML = "<p>Carregando histórico...</p>";
+    db.collection("players").doc(playerId)
+      .collection("historico")
+      .orderBy("data","desc")
+      .limit(10)
+      .get()
+      .then(snap => {
+        if (snap.empty) {
+          content.innerHTML = "<p>Sem histórico ainda.</p>";
+          return;
+        }
+        content.innerHTML = snap.docs.map(d =>
+          `<div class="log">✔ ${d.data().acao} — ${d.data().data}</div>`
+        ).join("");
+      });
   }
 }
 
@@ -175,41 +233,34 @@ if (playerId) {
   db.collection("players").doc(playerId).get().then(doc => {
     if (!doc.exists) return;
 
-    let p = doc.data();
+    const p = doc.data();
 
-    document.getElementById("apelido").innerText = "@" + p.apelido;
-    document.getElementById("nivel").innerText = "Nível: " + p.nivel;
-    document.getElementById("respeito").innerText = estrelas(p.respeito);
-    document.getElementById("membro").innerText = "Membro desde " + p.membroDesde;
+    document.getElementById("apelido").innerText = "@"+p.apelido;
+    document.getElementById("nivel").innerText = "Nível "+p.nivel;
+    starsEl.innerText = estrelas(p.respeito);
+    document.getElementById("membro").innerText = "Membro desde "+p.membroDesde;
 
     setAvatar(playerId);
-    render("perfil", p);
-
-    document.querySelectorAll(".menu button").forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll(".menu button").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        render(btn.dataset.tab, p);
-      };
-    });
+    showTab("perfil", p);
 
     const hoje = new Date().toISOString().split("T")[0];
-
     if (p.ultimoCheckin !== hoje) {
-      const novoRespeito = Math.min(p.respeito + 1, 5);
+      starsEl.classList.add("up");
+      setTimeout(()=>starsEl.classList.remove("up"),500);
 
       db.collection("players").doc(playerId).update({
-        respeito: novoRespeito,
+        respeito: Math.min(p.respeito+1,5),
         ultimoCheckin: hoje
       });
 
       db.collection("players").doc(playerId)
         .collection("historico")
-        .add({ acao: "Check-in NFC", data: hoje });
-
-      p.respeito = novoRespeito;
-      document.getElementById("respeito").innerText = estrelas(p.respeito);
+        .add({acao:"Check-in NFC", data:hoje});
     }
+
+    document.querySelectorAll(".menu button").forEach(btn=>{
+      btn.onclick=()=>showTab(btn.dataset.tab,p);
+    });
   });
 }
 </script>
