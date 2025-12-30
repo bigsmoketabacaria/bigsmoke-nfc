@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Smoke | Ranking</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #111, #000);
+  font-family: 'Montserrat', sans-serif;
+  color: #fff;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+h1 {
+  font-family: 'Bebas Neue';
+  text-align: center;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.rank {
+  max-width: 420px;
+  margin: auto;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.04);
+  padding: 10px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(46,204,113,0.25);
+}
+
+.pos {
+  font-family: 'Bebas Neue';
+  font-size: 22px;
+  width: 30px;
+  text-align: center;
+  color: #2ecc71;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  margin: 0 10px;
+  border: 2px solid #2ecc71;
+}
+
+.info {
+  flex: 1;
+}
+
+.info strong {
+  font-size: 16px;
+}
+
+.stats {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.gold { box-shadow: 0 0 15px rgba(255,215,0,0.4); }
+.silver { box-shadow: 0 0 15px rgba(192,192,192,0.4); }
+.bronze { box-shadow: 0 0 15px rgba(205,127,50,0.4); }
+</style>
+</head>
+
+<body>
+
+<h1>🏆 TOP PLAYERS BIG SMOKE</h1>
+
+<div class="rank" id="ranking"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDSFd-aLgogUqsRAxne5avvAIiYF6cUFKE",
+  authDomain: "bigsmoke-nfc.firebaseapp.com",
+  projectId: "bigsmoke-nfc"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const rankDiv = document.getElementById("ranking");
+
+db.collection("players")
+  .orderBy("respeito", "desc")
+  .orderBy("compras", "desc")
+  .limit(20)
+  .onSnapshot(snapshot => {
+    rankDiv.innerHTML = "";
+
+    let pos = 1;
+    snapshot.forEach(doc => {
+      const p = doc.data();
+      const id = doc.id;
+
+      const div = document.createElement("div");
+      div.className = "player";
+
+      if (pos === 1) div.classList.add("gold");
+      if (pos === 2) div.classList.add("silver");
+      if (pos === 3) div.classList.add("bronze");
+
+      div.innerHTML = `
+        <div class="pos">${pos}</div>
+        <div class="avatar" style="background-image:url('avatars/${id}.png')"></div>
+        <div class="info">
+          <strong>@${p.apelido}</strong>
+          <div class="stats">
+            ⭐ ${p.respeito} • 💰 R$ ${p.compras || 0}
+          </div>
+        </div>
+      `;
+
+      rankDiv.appendChild(div);
+      pos++;
+    });
+  });
+</script>
+
+</body>
+</html>
